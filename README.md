@@ -4,6 +4,36 @@ AS-C.Origami collects the GM12878 C.Origami training, allele-specific prediction
 SNP-density selection, input-generation, and benchmark workflows. Historical
 notebook outputs are retained for reference.
 
+## Overview
+
+AS-C.Origami is a workflow for allele-specific chromatin conformation
+prediction. It applies paternal and maternal ATAC signals obtained with
+dscNanoATAC to [C.Origami](https://github.com/tanjimin/C.Origami), enabling the
+model to generate allele-specific chromatin contact maps.
+
+![AS-C.Origami workflow](docs/images/AS-COrigami_workflow.png)
+
+## Prediction plans
+
+AS-C.Origami provides three prediction strategies that differ in which inputs
+are haplotype-specific:
+
+![Plan A, E, and H input comparison](docs/images/plans_benchmark_workflow.png)
+
+| Plan | Alias | DNA | ATAC | CTCF | Model |
+|---|---|---|---|---|---|
+| **Plan A** | **Default** | Bulk | Allele-specific | Bulk | Standard C.Origami |
+| Plan E | All-hap. | Haplotype-specific | Allele-specific | Allele-specific | Standard C.Origami |
+| Plan H | No-CTCF | Haplotype-specific | Allele-specific | Not used | ATAC-only C.Origami |
+
+- **Plan A (Default)** is the recommended starting workflow. It uses the
+  standard C.Origami model with bulk DNA and CTCF tracks while introducing
+  paternal or maternal dscNanoATAC as the allele-specific input.
+- **Plan E (All-hap.)** uses haplotype-specific DNA, dscNanoATAC, and generated
+  allele-specific CTCF tracks with the standard C.Origami model.
+- **Plan H (No-CTCF)** uses the ATAC-only model with haplotype-specific DNA and
+  dscNanoATAC, without a CTCF input.
+
 ## Repository layout
 
 | Path | Contents |
