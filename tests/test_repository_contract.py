@@ -88,6 +88,31 @@ class RepositoryContractTest(unittest.TestCase):
         self.assertIn("src/data/variants/illumina_PlatinumGenomes", ctcf)
         self.assertNotIn("/gpfs1/", diploid)
 
+    def test_notebook_sources_use_repository_prediction_layout(self):
+        for relative in (
+            "benchmarks/corigami_predict_benchmark_dip3d_planA_merge.ipynb",
+            "benchmarks/corigami_predict_benchmark_planAEH.ipynb",
+        ):
+            notebook = json.loads((ROOT / relative).read_text())
+            sources = "\n".join(
+                "".join(cell.get("source", []))
+                if isinstance(cell.get("source", []), list)
+                else cell.get("source", "")
+                for cell in notebook["cells"]
+            )
+            self.assertIn("outputs/prediction/plan-a", sources)
+        plan_aeh = json.loads((ROOT / "benchmarks/corigami_predict_benchmark_planAEH.ipynb").read_text())
+        sources = json.dumps([cell.get("source") for cell in plan_aeh["cells"]])
+        self.assertIn("outputs/prediction/plan-e", sources)
+        self.assertIn("outputs/prediction/plan-h", sources)
+
+    def test_snp_notebook_uses_uploaded_vcf_and_chrom_sizes(self):
+        notebook = json.loads((ROOT / "snp-density/SNP_density.ipynb").read_text())
+        sources = json.dumps([cell.get("source") for cell in notebook["cells"]])
+        self.assertIn("src/data/variants/illumina_PlatinumGenomes", sources)
+        self.assertIn("src/data/reference/GRCh38.chrom.sizes", sources)
+        self.assertIn("tileGenome", sources)
+
 
 if __name__ == "__main__":
     unittest.main()
