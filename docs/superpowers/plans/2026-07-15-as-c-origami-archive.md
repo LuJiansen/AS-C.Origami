@@ -330,8 +330,13 @@ Run:
 test "$(tail -n +2 docs/source-manifest.tsv | wc -l)" -eq 8
 test -z "$(find . -path ./.git -prune -o -type f -size +99M -print)"
 test -z "$(find . -path ./.git -prune -o -type f \( -name '*.ckpt' -o -name '*.bw' -o -name '*.npy' -o -name '*.RData' -o -name '*.qs' \) -print)"
-rg -n -i '(github_pat_|ghp_[A-Za-z0-9]{20,}|api[_-]?key[[:space:]]*[:=]|password[[:space:]]*[:=]|secret[[:space:]]*[:=])' . \
-  --glob '!.git/**' --glob '!docs/superpowers/**' && exit 1 || test $? -eq 1
+if rg -n -i '(github_pat_|ghp_[A-Za-z0-9]{20,}|api[_-]?key[[:space:]]*[:=]|password[[:space:]]*[:=]|secret[[:space:]]*[:=])' . \
+  --glob '!.git/**' --glob '!docs/superpowers/**'; then
+    echo "credential-like pattern found" >&2
+    exit 1
+else
+    test "$?" -eq 1
+fi
 git diff --check
 git status --short
 ```
