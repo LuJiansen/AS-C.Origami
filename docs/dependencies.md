@@ -1,33 +1,66 @@
 # Dependencies and environment
 
-## Software
+Exact package versions were not captured by the source workflows. Recreate and
+validate an environment appropriate for the installed C.Origami version before
+running full jobs.
 
-- C.Origami command-line tools, including `corigami-train` and `corigami-predict`
-- Conda environment named `corigami`
-- Python/PyTorch and the local ATAC-only training and inference programs
-- Snakemake and a GPU-enabled cluster execution environment
-- R with IRkernel and the packages loaded by the benchmark notebooks
-- Python packages loaded through `reticulate` in the benchmark notebooks
+## Training and prediction
 
-Exact package versions were not captured by the requested files and are therefore not inferred here.
+- C.Origami command-line programs, including `corigami-train` and
+  `corigami-predict`
+- Python with PyTorch and the modules imported by
+  `src/training/train_atac_only.py` and `src/prediction/predict_atac_only.py`
+- Snakemake
+- A CUDA-capable GPU environment; the launchers retain the original SLURM
+  resource directives and conda environment name `corigami`
+- The Zenodo C.Origami GM12878 bulk data extracted at
+  `src/data/corigami_data/data/`
 
-## External code
+The ATAC-only training launcher retains two site-specific environment setup
+paths. Replace those `source` lines if the repository is run outside the
+original cluster. Workflow data and model paths themselves are repository-local.
 
-- `/gpfs1/tangfuchou_pkuhpc/tangfuchou_test/lujiansen/software/corigami/train_atac_only.py`
-- `/gpfs1/tangfuchou_pkuhpc/tangfuchou_test/lujiansen/software/corigami/predict_atac_only.py`
+## Diploid FASTA generation
 
-These programs are referenced by the archived launchers but are outside the explicitly requested archive scope.
+`src/generation/diploid-dna/01_build_haplotype_fasta.sh` requires:
 
-## External data
+- `bcftools` 1.10 or newer
+- `samtools`
+- `bgzip` and `tabix`
+- The downloaded hg38 reference FASTA and the uploaded phased VCF/index
 
-The workflows require model checkpoints, haplotype and bulk DNA sequences, allele-specific and bulk ATAC BigWig tracks, CTCF tracks, chromosome sizes, ranked SNP-density windows, Dip3D reference matrices, blacklist intervals, and prediction `.npy` files. These are intentionally excluded because they are generated data, reference data, or large binary artifacts.
+The script generates per-chromosome paternal and maternal bgzip FASTA files and
+a temporary SNP-only VCF. These generated files are excluded from Git.
 
-## Cluster-specific paths
+## Plan E CTCF generation
 
-The archived files retain absolute paths under `/gpfs1` and `/home/tangfuchou_pkuhpc`. They describe the environment in which the workflow was used and must be reviewed before running on another system. No path has been parameterized in this archive.
+`src/generation/plan-e-ctcf/06_continuous_pwm_ctcf.py` requires Python packages
+`numpy`, `pyBigWig`, and `pysam`, together with:
 
-## Execution limits
+- `src/generation/plan-e-ctcf/MA0139.1.meme`
+- The uploaded phased VCF
+- The downloaded hg38 reference FASTA and bulk GM12878 CTCF BigWig
+- `src/data/reference/GRCh38.chrom.sizes`
 
-Notebook outputs are retained for reference, but the notebooks were not re-executed during archiving. Snakemake dry-runs are also not part of archive verification because top-level workflow evaluation reads external files.
+## SNP-density and benchmark notebooks
 
-The archived `run_top_pred_planE.smk` currently references `seq` and `ctcf` in its `merge_pred` rule even though only haplotype-specific `seq_pat`, `seq_mat`, `ctcf_pat`, and `ctcf_mat` variables are declared. This is preserved as source provenance rather than silently corrected; review and resolve it before executing Plan E.
+The SNP-density notebook requires R/Bioconductor packages used in its code,
+including genomic interval and tidy-data tooling. The benchmark notebooks require
+R with IRkernel, their imported R packages, and Python packages loaded through
+`reticulate`. Historical outputs are retained, but the notebooks were not fully
+re-executed during repository assembly.
+
+The benchmark analyses also depend on external data that is not committed:
+
+- Dip3D paternal and maternal reference contact matrices
+- Genomic blacklist intervals
+- Ground-truth and comparison reference matrices used by SCC and insulation
+  calculations
+- Full prediction `.npy` output trees produced by Plans A, E, and H
+
+## Storage and version control
+
+Git LFS is required to clone the two checkpoints, three GM12878 dscNanoATAC
+BigWigs, and phased VCF/index. Downloaded Zenodo data, generated allele-specific
+inputs, training outputs, prediction matrices, and notebook runtime caches are
+excluded from Git.
