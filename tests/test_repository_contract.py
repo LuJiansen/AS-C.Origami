@@ -48,6 +48,17 @@ class RepositoryContractTest(unittest.TestCase):
                     row["sha256"], hashlib.sha256(payload).hexdigest(), row["path"]
                 )
 
+    def test_training_launchers_use_repository_paths(self):
+        standard = (ROOT / "src/training/corigami_train.sh").read_text()
+        atac_only = (ROOT / "src/training/corigami_train_atac_only.sh").read_text()
+        for text in (standard, atac_only):
+            self.assertIn('REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"', text)
+            self.assertIn('${REPO_ROOT}/src/data/corigami_data/data', text)
+            self.assertNotIn("/software/corigami", text)
+        self.assertIn('${REPO_ROOT}/outputs/training/standard', standard)
+        self.assertIn('${REPO_ROOT}/src/training/train_atac_only.py', atac_only)
+        self.assertIn('${REPO_ROOT}/outputs/training/atac-only', atac_only)
+
 
 if __name__ == "__main__":
     unittest.main()
