@@ -72,6 +72,16 @@ The phased VCF is sourced from
 three dscNanoATAC tracks are GM12878 processing outputs; the sample identity is
 kept explicitly in every filename.
 
+## Environment setup
+
+Before running AS-C.Origami, follow the installation and environment setup
+steps in the upstream [C.Origami repository](https://github.com/tanjimin/C.Origami)
+to configure the `corigami` environment. The training launchers use that
+environment by default; set `CORIGAMI_ENV` if it has a different name.
+
+Install the additional workflow and input-generation dependencies, including
+Snakemake, as listed in [`docs/dependencies.md`](docs/dependencies.md).
+
 ## Download the C.Origami bulk data
 
 Bulk `dna_sequence` and `gm12878` inputs are not committed. Download the public
