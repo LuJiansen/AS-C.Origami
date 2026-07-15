@@ -1,7 +1,4 @@
-# Model and genomic data
-*.ckpt
-*.bw
-*.bigWig
+# Generated genomic data
 *.bedGraph
 *.fasta
 *.fa
@@ -21,10 +18,16 @@ __pycache__/
 *.py[cod]
 
 # Workflow outputs and logs
+outputs/
 predict/
 predict_*/
 .snakemake/
 logs/
+*.log
+
+# Downloaded CORIGAMI bulk data (see src/data/corigami_data/README.md)
+src/data/corigami_data/data/**
+!src/data/corigami_data/README.md
 
 # Local Git worktrees
 .worktrees/

@@ -9,6 +9,25 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class RepositoryContractTest(unittest.TestCase):
+    ASSET_HASHES = {
+        "src/models/standard/epoch=78-step=47004.ckpt": "81c1379928adfbe0ec26f236a03347bf51a3ccecf1a261ef343f04f9e2fa0c55",
+        "src/models/atac-only/epoch=46-step=55929.ckpt": "d41c9ee236eeaeeaeb7bd49a516bcedb07620d830756068ecc7b83949892e599",
+        "src/data/dscNanoATAC/GM12878_dscNanoATAC_paternal.bw": "6c8a0249e6b3097a0a0e6b5a0035cccb555a0a08c0622fb70140d8e010b21b52",
+        "src/data/dscNanoATAC/GM12878_dscNanoATAC_maternal.bw": "4e7304569a43eea50c3c556cc201f4eced93e2eb7a14bc523c704ff8347ddd6a",
+        "src/data/dscNanoATAC/GM12878_dscNanoATAC_merged.bw": "36cea84aeea3fb6d414534ef8363a8f2bcbe9fcbae329d2a331968a95a7938a9",
+        "src/data/variants/illumina_PlatinumGenomes_2017_hg38_NA12878_PS.vcf.gz": "de6169dffe3d758fe8854fc36dc30c11e73f922c1fd809341f4aaf4a44a22fb7",
+        "src/data/variants/illumina_PlatinumGenomes_2017_hg38_NA12878_PS.vcf.gz.tbi": "01c66ac39725a9e0196468244e34f3a8188dc65f37353290c535bfd015d84625",
+        "src/data/regions/GM12878_2M_10k_snp_density_summary.txt": "4820a69d48451a21bbf2c87e480a125e30b127e5f7e15fd3e9043c80570570fc",
+        "src/data/reference/GRCh38.chrom.sizes": "d525ee20551f34768f4017c7a779a3f3c7b947dacdea27838a5776508834b306",
+    }
+
+    def test_imported_assets_match_approved_hashes(self):
+        for relative, expected in self.ASSET_HASHES.items():
+            path = ROOT / relative
+            self.assertTrue(path.is_file(), relative)
+            actual = hashlib.sha256(path.read_bytes()).hexdigest()
+            self.assertEqual(expected, actual, relative)
+
     def test_required_source_files_exist(self):
         expected = [
             "src/training/corigami_train.sh",
