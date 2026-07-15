@@ -16,9 +16,10 @@ running full jobs.
 - The Zenodo C.Origami GM12878 bulk data extracted at
   `src/data/corigami_data/data/`
 
-The ATAC-only training launcher retains two site-specific environment setup
-paths. Replace those `source` lines if the repository is run outside the
-original cluster. Workflow data and model paths themselves are repository-local.
+The ATAC-only training launcher expects `conda` on `PATH`, initializes the bash
+shell hook, and activates `corigami`. Set `CORIGAMI_ENV` to use a different
+environment name. Workflow data, code, model, and output paths are
+repository-local.
 
 ## Diploid FASTA generation
 

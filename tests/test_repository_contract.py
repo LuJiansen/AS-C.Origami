@@ -78,6 +78,13 @@ class RepositoryContractTest(unittest.TestCase):
         self.assertIn('${REPO_ROOT}/src/training/train_atac_only.py', atac_only)
         self.assertIn('${REPO_ROOT}/outputs/training/atac-only', atac_only)
 
+    def test_executable_sources_do_not_use_cluster_absolute_paths(self):
+        for suffix in ("*.sh", "*.py", "*.smk"):
+            for path in (ROOT / "src").rglob(suffix):
+                text = path.read_text()
+                self.assertNotIn("/gpfs1/", text, path.relative_to(ROOT))
+                self.assertNotIn("/home/", text, path.relative_to(ROOT))
+
     def test_prediction_workflows_use_repository_paths(self):
         expected_outputs = {
             "run_top_pred.smk": "outputs/prediction/plan-a",

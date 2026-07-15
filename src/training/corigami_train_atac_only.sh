@@ -18,9 +18,12 @@ export CUDA_VISIBLE_DEVICES=0
 export http_proxy=""; export https_proxy=""; export no_proxy="*"
 export OFFLINE=1; export TORCH_HUB_OFFLINE=1
 
-source /gpfs1/tangfuchou_pkuhpc/tangfuchou_test/lujiansen/source/ljs_bashrc.sh
-source /gpfs1/tangfuchou_pkuhpc/tangfuchou_test/lujiansen/software/anaconda3/etc/profile.d/conda.sh
-conda activate corigami
+if ! command -v conda >/dev/null 2>&1; then
+    echo "conda is required on PATH before submitting this launcher" >&2
+    exit 1
+fi
+eval "$(conda shell.bash hook)"
+conda activate "${CORIGAMI_ENV:-corigami}"
 
 OUTPUT_DIR="${REPO_ROOT}/outputs/training/atac-only"
 mkdir -p "${OUTPUT_DIR}"
