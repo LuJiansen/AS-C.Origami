@@ -16,7 +16,8 @@ model to generate allele-specific chromatin contact maps.
 ## Prediction plans
 
 AS-C.Origami provides three prediction strategies that differ in which inputs
-are haplotype-specific:
+are haplotype-specific. The comparison below describes the paternal and maternal
+prediction jobs; merged and bulk reference jobs continue to use bulk inputs.
 
 ![Plan A, E, and H input comparison](docs/images/plans_benchmark_workflow.png)
 
@@ -76,8 +77,10 @@ kept explicitly in every filename.
 
 Before running AS-C.Origami, follow the installation and environment setup
 steps in the upstream [C.Origami repository](https://github.com/tanjimin/C.Origami)
-to configure the `corigami` environment. The training launchers use that
-environment by default; set `CORIGAMI_ENV` if it has a different name.
+to configure the `corigami` environment. The prediction workflows activate an
+environment with that name, and the standard training launcher expects
+`corigami-train` on `PATH`. The ATAC-only training launcher additionally accepts
+`CORIGAMI_ENV` when its environment has a different name.
 
 Install the additional workflow and input-generation dependencies, including
 Snakemake, as listed in [`docs/dependencies.md`](docs/dependencies.md).
