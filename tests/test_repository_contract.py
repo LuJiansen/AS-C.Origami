@@ -78,6 +78,16 @@ class RepositoryContractTest(unittest.TestCase):
         self.assertIn("seq   = bulk_seq", merge_rule)
         self.assertIn("ctcf  = bulk_ctcf", merge_rule)
 
+    def test_generation_tools_default_to_repository_assets(self):
+        diploid = (ROOT / "src/generation/diploid-dna/01_build_haplotype_fasta.sh").read_text()
+        ctcf = (ROOT / "src/generation/plan-e-ctcf/06_continuous_pwm_ctcf.py").read_text()
+        self.assertIn('REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"', diploid)
+        self.assertIn("src/data/variants/illumina_PlatinumGenomes", diploid)
+        self.assertIn("dna_sequence_diploid", diploid)
+        self.assertIn("default_paths", ctcf)
+        self.assertIn("src/data/variants/illumina_PlatinumGenomes", ctcf)
+        self.assertNotIn("/gpfs1/", diploid)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -11,6 +11,8 @@ import sys
 import os
 import gzip
 import argparse
+from pathlib import Path
+
 import numpy as np
 import pyBigWig
 import pysam
@@ -257,14 +259,29 @@ def build_haplotype_ctcf_bigwig(events, fasta, log_odds_pwm,
     out_bw.close()
 
 
+def default_paths():
+    repo_root = Path(__file__).resolve().parents[3]
+    data_root = repo_root / "src" / "data"
+    corigami = data_root / "corigami_data" / "data"
+    return {
+        "meme": Path(__file__).with_name("MA0139.1.meme"),
+        "vcf": repo_root / "src/data/variants/illumina_PlatinumGenomes_2017_hg38_NA12878_PS.vcf.gz",
+        "ref_fasta": corigami / "hg38" / "dna_sequence" / "hg38.fa",
+        "bulk_ctcf": corigami / "hg38" / "gm12878" / "genomic_features" / "ctcf_log2fc.bw",
+        "chrom_sizes": data_root / "reference" / "GRCh38.chrom.sizes",
+        "out_dir": corigami / "hg38" / "gm12878" / "genomic_features" / "plan-e",
+    }
+
+
 def parse_args():
+    defaults = default_paths()
     p = argparse.ArgumentParser(description="Plan E: continuous PWM-modulated allele-specific CTCF")
-    p.add_argument("--meme", required=True, help="Path to MA0139.1.meme PWM file")
-    p.add_argument("--vcf", required=True, help="Path to phased VCF (.vcf.gz)")
-    p.add_argument("--ref-fasta", required=True, help="Path to hg38 reference fasta")
-    p.add_argument("--bulk-ctcf", required=True, help="Path to bulk CTCF log2FC bigWig")
-    p.add_argument("--chrom-sizes", required=True, help="Path to hg38 chrom.sizes file")
-    p.add_argument("--out-dir", required=True, help="Output directory for allele-specific bigWigs")
+    p.add_argument("--meme", default=str(defaults["meme"]), help="Path to MA0139.1.meme PWM file")
+    p.add_argument("--vcf", default=str(defaults["vcf"]), help="Path to phased VCF (.vcf.gz)")
+    p.add_argument("--ref-fasta", default=str(defaults["ref_fasta"]), help="Path to hg38 reference fasta")
+    p.add_argument("--bulk-ctcf", default=str(defaults["bulk_ctcf"]), help="Path to bulk CTCF log2FC bigWig")
+    p.add_argument("--chrom-sizes", default=str(defaults["chrom_sizes"]), help="Path to hg38 chrom.sizes file")
+    p.add_argument("--out-dir", default=str(defaults["out_dir"]), help="Output directory for allele-specific bigWigs")
     p.add_argument("--chroms", default=None, help="Comma-separated list of chromosomes (default: chr1-chr22,chrX)")
     return p.parse_args()
 
