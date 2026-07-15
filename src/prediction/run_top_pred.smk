@@ -28,21 +28,30 @@
 # genomic coordinates in both directories — fair comparison.
 # ─────────────────────────────────────────────────────────────────────────────
 
-import os
+from pathlib import Path
 
 ############################ inputs ############################
-model = 'GM12878/models/epoch=78-step=47004.ckpt'
+REPO_ROOT = Path(workflow.snakefile).resolve().parents[2]
+SRC = REPO_ROOT / "src"
+DATA = SRC / "data"
+CORIGAMI_DATA = DATA / "corigami_data" / "data"
+REGION_LIST = DATA / "regions" / "GM12878_2M_10k_snp_density_summary.txt"
+CHROM_SIZES = DATA / "reference" / "GRCh38.chrom.sizes"
+DSC_ATAC = DATA / "dscNanoATAC"
+OUTPUT_ROOT = REPO_ROOT / "outputs/prediction/plan-a"
+
+model = str(SRC / "models" / "standard" / "epoch=78-step=47004.ckpt")
 
 # Plan A: bulk seq + bulk CTCF, only ATAC is allele-specific
-seq      = 'corigami_data/data/hg38/dna_sequence'
-ctcf     = 'corigami_data/data/hg38/gm12878/genomic_features/ctcf_log2fc.bw'
-atac     = 'corigami_data/data/hg38/gm12878/genomic_features/atac.bw'
-pat_atac = '/gpfs1/tangfuchou_pkuhpc/tangfuchou_test/lujiansen/project/LW_TEST/10XATAC/analysis/GM12878_merged_noerror/Results/GM12878_merged_paternal_fragments_slop_sort_deeptools.bw'
-mat_atac = '/gpfs1/tangfuchou_pkuhpc/tangfuchou_test/lujiansen/project/LW_TEST/10XATAC/analysis/GM12878_merged_noerror/Results/GM12878_merged_maternal_fragments_slop_sort_deeptools.bw'
-merge_atac = '/gpfs1/tangfuchou_pkuhpc/tangfuchou_test/lujiansen/project/LW_TEST/10XATAC/analysis/GM12878_merged_noerror/GM12878_merged_slop_sort_deeptools.bw'
+seq = str(CORIGAMI_DATA / "hg38" / "dna_sequence")
+ctcf = str(CORIGAMI_DATA / "hg38" / "gm12878" / "genomic_features" / "ctcf_log2fc.bw")
+atac = str(CORIGAMI_DATA / "hg38" / "gm12878" / "genomic_features" / "atac.bw")
+pat_atac = str(DSC_ATAC / "GM12878_dscNanoATAC_paternal.bw")
+mat_atac = str(DSC_ATAC / "GM12878_dscNanoATAC_maternal.bw")
+merge_atac = str(DSC_ATAC / "GM12878_dscNanoATAC_merged.bw")
 
-region_list = '/gpfs1/tangfuchou_pkuhpc/tangfuchou_test/lujiansen/database/GM12878/GM12878/GM12878_2M_10k_snp_density_summary.txt'
-chrom_sizes = '/gpfs1/tangfuchou_pkuhpc/tangfuchou_test/lujiansen/database/GRCh38_ref/GRCh38.chrom.sizes'
+region_list = str(REGION_LIST)
+chrom_sizes = str(CHROM_SIZES)
 TOP_N       = int(config.get("TOP_N", 5000))   # override at the cli with: --config TOP_N=50
 WIN_OFFSET  = 0                                 # 0 → predict_start aligns with snp_density 'start'
 WIN_SIZE    = 2_097_152                         # corigami input window length (2^21 bp)
@@ -79,10 +88,10 @@ print(f"[planA] predicting {len(regions)} regions (top {TOP_N})")
 ############################ rules ############################
 rule all:
     input:
-        expand('predict/GM12878_pat/prediction/npy/{region}.npy', region=regions),
-        expand('predict/GM12878_mat/prediction/npy/{region}.npy', region=regions),
-        expand('predict/GM12878_merge/prediction/npy/{region}.npy', region=regions),
-        expand('predict/GM12878/prediction/npy/{region}.npy',     region=regions),
+        expand(str(OUTPUT_ROOT / "GM12878_pat/prediction/npy/{region}.npy"), region=regions),
+        expand(str(OUTPUT_ROOT / "GM12878_mat/prediction/npy/{region}.npy"), region=regions),
+        expand(str(OUTPUT_ROOT / "GM12878_merge/prediction/npy/{region}.npy"), region=regions),
+        expand(str(OUTPUT_ROOT / "GM12878/prediction/npy/{region}.npy"), region=regions),
 
 rule pat_pred:
     input:
@@ -91,7 +100,7 @@ rule pat_pred:
         ctcf  = ctcf,
         atac  = pat_atac,
     output:
-        'predict/GM12878_pat/prediction/npy/{region}.npy',
+        str(OUTPUT_ROOT / "GM12878_pat/prediction/npy/{region}.npy"),
     shell: """
         set +u; source activate corigami; set -u
         # SLURM (--gres=gpu:1) sets CUDA_VISIBLE_DEVICES automatically;
@@ -99,7 +108,7 @@ rule pat_pred:
         chr=`echo {wildcards.region} | sed 's/_.*//g'`
         start=`echo {wildcards.region} | sed 's/.*_//g'`
         corigami-predict \\
-            --out predict \\
+            --out {OUTPUT_ROOT} \\
             --celltype GM12878_pat \\
             --chr $chr --start $start \\
             --model {input.model} \\
@@ -120,13 +129,13 @@ rule mat_pred:
         ctcf  = ctcf,
         atac  = mat_atac,
     output:
-        'predict/GM12878_mat/prediction/npy/{region}.npy',
+        str(OUTPUT_ROOT / "GM12878_mat/prediction/npy/{region}.npy"),
     shell: """
         set +u; source activate corigami; set -u
         chr=`echo {wildcards.region} | sed 's/_.*//g'`
         start=`echo {wildcards.region} | sed 's/.*_//g'`
         corigami-predict \\
-            --out predict \\
+            --out {OUTPUT_ROOT} \\
             --celltype GM12878_mat \\
             --chr $chr --start $start \\
             --model {input.model} \\
@@ -144,13 +153,13 @@ rule merge_pred:
         ctcf  = ctcf,
         atac  = merge_atac,
     output:
-        'predict/GM12878_merge/prediction/npy/{region}.npy',
+        str(OUTPUT_ROOT / "GM12878_merge/prediction/npy/{region}.npy"),
     shell: """
         set +u; source activate corigami; set -u
         chr=`echo {wildcards.region} | sed 's/_.*//g'`
         start=`echo {wildcards.region} | sed 's/.*_//g'`
         corigami-predict \\
-            --out predict \\
+            --out {OUTPUT_ROOT} \\
             --celltype GM12878_merge \\
             --chr $chr --start $start \\
             --model {input.model} \\
@@ -168,13 +177,13 @@ rule all_pred:
         ctcf  = ctcf,
         atac  = atac,
     output:
-        'predict/GM12878/prediction/npy/{region}.npy',
+        str(OUTPUT_ROOT / "GM12878/prediction/npy/{region}.npy"),
     shell: """
         set +u; source activate corigami; set -u
         chr=`echo {wildcards.region} | sed 's/_.*//g'`
         start=`echo {wildcards.region} | sed 's/.*_//g'`
         corigami-predict \\
-            --out predict \\
+            --out {OUTPUT_ROOT} \\
             --celltype GM12878 \\
             --chr $chr --start $start \\
             --model {input.model} \\

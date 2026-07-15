@@ -8,22 +8,33 @@
 # Filename / region convention:
 #   <chr>_<predict_start>.npy  (WIN_OFFSET = 0, same as plans A–D)
 
-import os
+from pathlib import Path
 
 ############################ inputs ############################
-model    = 'GM12878/models/epoch=78-step=47004.ckpt'
+REPO_ROOT = Path(workflow.snakefile).resolve().parents[2]
+SRC = REPO_ROOT / "src"
+DATA = SRC / "data"
+CORIGAMI_DATA = DATA / "corigami_data" / "data"
+REGION_LIST = DATA / "regions" / "GM12878_2M_10k_snp_density_summary.txt"
+CHROM_SIZES = DATA / "reference" / "GRCh38.chrom.sizes"
+DSC_ATAC = DATA / "dscNanoATAC"
+OUTPUT_ROOT = REPO_ROOT / "outputs/prediction/plan-e"
+
+model = str(SRC / "models" / "standard" / "epoch=78-step=47004.ckpt")
 
 # Plan E: diploid seq + continuous PWM CTCF + allele-specific ATAC
-seq_pat  = 'corigami_data/data/hg38/dna_sequence_diploid/paternal'
-seq_mat  = 'corigami_data/data/hg38/dna_sequence_diploid/maternal'
-ctcf_pat = 'allele_specific/ctcf_cont/ctcf_log2fc_cont_paternal.bw'
-ctcf_mat = 'allele_specific/ctcf_cont/ctcf_log2fc_cont_maternal.bw'
-atac_pat = '/gpfs1/tangfuchou_pkuhpc/tangfuchou_test/lujiansen/project/LW_TEST/10XATAC/analysis/GM12878_merged_noerror/Results/GM12878_merged_paternal_fragments_slop_sort_deeptools.bw'
-atac_mat = '/gpfs1/tangfuchou_pkuhpc/tangfuchou_test/lujiansen/project/LW_TEST/10XATAC/analysis/GM12878_merged_noerror/Results/GM12878_merged_maternal_fragments_slop_sort_deeptools.bw'
-merge_atac = '/gpfs1/tangfuchou_pkuhpc/tangfuchou_test/lujiansen/project/LW_TEST/10XATAC/analysis/GM12878_merged_noerror/GM12878_merged_slop_sort_deeptools.bw'
+bulk_seq = str(CORIGAMI_DATA / "hg38" / "dna_sequence")
+bulk_ctcf = str(CORIGAMI_DATA / "hg38" / "gm12878" / "genomic_features" / "ctcf_log2fc.bw")
+seq_pat = str(CORIGAMI_DATA / "hg38" / "dna_sequence_diploid" / "paternal")
+seq_mat = str(CORIGAMI_DATA / "hg38" / "dna_sequence_diploid" / "maternal")
+ctcf_pat = str(CORIGAMI_DATA / "hg38" / "gm12878" / "genomic_features" / "plan-e" / "ctcf_log2fc_cont_paternal.bw")
+ctcf_mat = str(CORIGAMI_DATA / "hg38" / "gm12878" / "genomic_features" / "plan-e" / "ctcf_log2fc_cont_maternal.bw")
+atac_pat = str(DSC_ATAC / "GM12878_dscNanoATAC_paternal.bw")
+atac_mat = str(DSC_ATAC / "GM12878_dscNanoATAC_maternal.bw")
+merge_atac = str(DSC_ATAC / "GM12878_dscNanoATAC_merged.bw")
 
-region_list  = '/gpfs1/tangfuchou_pkuhpc/tangfuchou_test/lujiansen/database/GM12878/GM12878/GM12878_2M_10k_snp_density_summary.txt'
-chrom_sizes  = '/gpfs1/tangfuchou_pkuhpc/tangfuchou_test/lujiansen/database/GRCh38_ref/GRCh38.chrom.sizes'
+region_list = str(REGION_LIST)
+chrom_sizes = str(CHROM_SIZES)
 TOP_N        = int(config.get("TOP_N", 100))
 WIN_OFFSET   = 0
 WIN_SIZE     = 2_097_152
@@ -56,9 +67,9 @@ print(f"[planE] predicting {len(regions)} regions (top {TOP_N})")
 ############################ rules ############################
 rule all:
     input:
-        expand('predict_planE/GM12878_pat_planE/prediction/npy/{region}.npy', region=regions),
-        expand('predict_planE/GM12878_mat_planE/prediction/npy/{region}.npy', region=regions),
-        expand('predict_planE/GM12878_merge_planE/prediction/npy/{region}.npy', region=regions),
+        expand(str(OUTPUT_ROOT / "GM12878_pat_planE/prediction/npy/{region}.npy"), region=regions),
+        expand(str(OUTPUT_ROOT / "GM12878_mat_planE/prediction/npy/{region}.npy"), region=regions),
+        expand(str(OUTPUT_ROOT / "GM12878_merge_planE/prediction/npy/{region}.npy"), region=regions),
 
 rule pat_pred:
     input:
@@ -67,7 +78,7 @@ rule pat_pred:
         ctcf  = ctcf_pat,
         atac  = atac_pat,
     output:
-        'predict_planE/GM12878_pat_planE/prediction/npy/{region}.npy',
+        str(OUTPUT_ROOT / "GM12878_pat_planE/prediction/npy/{region}.npy"),
     shell: """
         set +u; source activate corigami; set -u
         export CUDA_VISIBLE_DEVICES=0
@@ -76,7 +87,7 @@ rule pat_pred:
         chr=`echo {wildcards.region} | sed 's/_.*//g'`
         start=`echo {wildcards.region} | sed 's/.*_//g'`
         corigami-predict \\
-            --out predict_planE \\
+            --out {OUTPUT_ROOT} \\
             --celltype GM12878_pat_planE \\
             --chr $chr --start $start \\
             --model {input.model} \\
@@ -94,14 +105,14 @@ rule mat_pred:
         ctcf  = ctcf_mat,
         atac  = atac_mat,
     output:
-        'predict_planE/GM12878_mat_planE/prediction/npy/{region}.npy',
+        str(OUTPUT_ROOT / "GM12878_mat_planE/prediction/npy/{region}.npy"),
     shell: """
         set +u; source activate corigami; set -u
         export CUDA_VISIBLE_DEVICES=0
         chr=`echo {wildcards.region} | sed 's/_.*//g'`
         start=`echo {wildcards.region} | sed 's/.*_//g'`
         corigami-predict \\
-            --out predict_planE \\
+            --out {OUTPUT_ROOT} \\
             --celltype GM12878_mat_planE \\
             --chr $chr --start $start \\
             --model {input.model} \\
@@ -115,17 +126,17 @@ rule mat_pred:
 rule merge_pred:
     input:
         model = model,
-        seq   = seq,
-        ctcf  = ctcf,
+        seq   = bulk_seq,
+        ctcf  = bulk_ctcf,
         atac  = merge_atac,
     output:
-        'predict_planE/GM12878_merge_planE/prediction/npy/{region}.npy',
+        str(OUTPUT_ROOT / "GM12878_merge_planE/prediction/npy/{region}.npy"),
     shell: """
         set +u; source activate corigami; set -u
         chr=`echo {wildcards.region} | sed 's/_.*//g'`
         start=`echo {wildcards.region} | sed 's/.*_//g'`
         corigami-predict \\
-            --out predict_planE \\
+            --out {OUTPUT_ROOT} \\
             --celltype GM12878_merge_planE \\
             --chr $chr --start $start \\
             --model {input.model} \\

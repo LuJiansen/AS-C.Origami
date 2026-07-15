@@ -1,21 +1,32 @@
 # Plan H: ATAC-only C.Origami predictions using haplotype-specific DNA and
 # ATAC for paternal/maternal outputs, plus bulk DNA and ATAC as a reference.
 
+from pathlib import Path
+
 ############################ inputs ############################
-model = 'GM12878_ATAC_ONLY/models/epoch=46-step=55929.ckpt'
-inference_script = 'predict_atac_only.py'
+REPO_ROOT = Path(workflow.snakefile).resolve().parents[2]
+SRC = REPO_ROOT / "src"
+DATA = SRC / "data"
+CORIGAMI_DATA = DATA / "corigami_data" / "data"
+REGION_LIST = DATA / "regions" / "GM12878_2M_10k_snp_density_summary.txt"
+CHROM_SIZES = DATA / "reference" / "GRCh38.chrom.sizes"
+DSC_ATAC = DATA / "dscNanoATAC"
+OUTPUT_ROOT = REPO_ROOT / "outputs/prediction/plan-h"
 
-pat_seq = 'corigami_data/data/hg38/dna_sequence_diploid/paternal'
-mat_seq = 'corigami_data/data/hg38/dna_sequence_diploid/maternal'
-bulk_seq = 'corigami_data/data/hg38/dna_sequence'
+model = str(SRC / "models" / "atac-only" / "epoch=46-step=55929.ckpt")
+inference_script = str(SRC / "prediction" / "predict_atac_only.py")
 
-pat_atac = '/gpfs1/tangfuchou_pkuhpc/tangfuchou_test/lujiansen/project/LW_TEST/10XATAC/analysis/GM12878_merged_noerror/Results/GM12878_merged_paternal_fragments_slop_sort_deeptools.bw'
-mat_atac = '/gpfs1/tangfuchou_pkuhpc/tangfuchou_test/lujiansen/project/LW_TEST/10XATAC/analysis/GM12878_merged_noerror/Results/GM12878_merged_maternal_fragments_slop_sort_deeptools.bw'
-bulk_atac = 'corigami_data/data/hg38/gm12878/genomic_features/atac.bw'
-merge_atac = '/gpfs1/tangfuchou_pkuhpc/tangfuchou_test/lujiansen/project/LW_TEST/10XATAC/analysis/GM12878_merged_noerror/GM12878_merged_slop_sort_deeptools.bw'
+pat_seq = str(CORIGAMI_DATA / "hg38" / "dna_sequence_diploid" / "paternal")
+mat_seq = str(CORIGAMI_DATA / "hg38" / "dna_sequence_diploid" / "maternal")
+bulk_seq = str(CORIGAMI_DATA / "hg38" / "dna_sequence")
 
-region_list = '/gpfs1/tangfuchou_pkuhpc/tangfuchou_test/lujiansen/database/GM12878/GM12878/GM12878_2M_10k_snp_density_summary.txt'
-chrom_sizes = '/gpfs1/tangfuchou_pkuhpc/tangfuchou_test/lujiansen/database/GRCh38_ref/GRCh38.chrom.sizes'
+pat_atac = str(DSC_ATAC / "GM12878_dscNanoATAC_paternal.bw")
+mat_atac = str(DSC_ATAC / "GM12878_dscNanoATAC_maternal.bw")
+bulk_atac = str(CORIGAMI_DATA / "hg38" / "gm12878" / "genomic_features" / "atac.bw")
+merge_atac = str(DSC_ATAC / "GM12878_dscNanoATAC_merged.bw")
+
+region_list = str(REGION_LIST)
+chrom_sizes = str(CHROM_SIZES)
 TOP_N = int(config.get("TOP_N", 5000))
 WIN_OFFSET = 0
 WIN_SIZE = 2_097_152
@@ -58,10 +69,10 @@ print(f"[planH] predicting {len(regions)} regions (top {TOP_N})")
 ############################ rules ############################
 rule all:
     input:
-        expand('predict_atac_model/GM12878_pat/prediction/npy/{region}.npy', region=regions),
-        expand('predict_atac_model/GM12878_mat/prediction/npy/{region}.npy', region=regions),
-        expand('predict_atac_model/GM12878_merge/prediction/npy/{region}.npy', region=regions),
-        expand('predict_atac_model/GM12878_all/prediction/npy/{region}.npy', region=regions),
+        expand(str(OUTPUT_ROOT / "GM12878_pat/prediction/npy/{region}.npy"), region=regions),
+        expand(str(OUTPUT_ROOT / "GM12878_mat/prediction/npy/{region}.npy"), region=regions),
+        expand(str(OUTPUT_ROOT / "GM12878_merge/prediction/npy/{region}.npy"), region=regions),
+        expand(str(OUTPUT_ROOT / "GM12878_all/prediction/npy/{region}.npy"), region=regions),
 
 rule pat_pred:
     input:
@@ -70,14 +81,14 @@ rule pat_pred:
         seq = pat_seq,
         atac = pat_atac,
     output:
-        'predict_atac_model/GM12878_pat/prediction/npy/{region}.npy',
+        str(OUTPUT_ROOT / "GM12878_pat/prediction/npy/{region}.npy"),
     shell: """
         set +u; source activate corigami; set -u
         export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
         chr=`echo {wildcards.region} | sed 's/_.*//g'`
         start=`echo {wildcards.region} | sed 's/.*_//g'`
         python {input.inference} \
-            --out predict_atac_model \
+            --out {OUTPUT_ROOT} \
             --celltype GM12878_pat \
             --chr $chr --start $start \
             --model {input.model} \
@@ -95,14 +106,14 @@ rule mat_pred:
         seq = mat_seq,
         atac = mat_atac,
     output:
-        'predict_atac_model/GM12878_mat/prediction/npy/{region}.npy',
+        str(OUTPUT_ROOT / "GM12878_mat/prediction/npy/{region}.npy"),
     shell: """
         set +u; source activate corigami; set -u
         export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
         chr=`echo {wildcards.region} | sed 's/_.*//g'`
         start=`echo {wildcards.region} | sed 's/.*_//g'`
         python {input.inference} \
-            --out predict_atac_model \
+            --out {OUTPUT_ROOT} \
             --celltype GM12878_mat \
             --chr $chr --start $start \
             --model {input.model} \
@@ -120,14 +131,14 @@ rule merge_pred:
         seq = bulk_seq,
         atac = merge_atac,
     output:
-        'predict_atac_model/GM12878_merge/prediction/npy/{region}.npy',
+        str(OUTPUT_ROOT / "GM12878_merge/prediction/npy/{region}.npy"),
     shell: """
         set +u; source activate corigami; set -u
         export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
         chr=`echo {wildcards.region} | sed 's/_.*//g'`
         start=`echo {wildcards.region} | sed 's/.*_//g'`
         python {input.inference} \
-            --out predict_atac_model \
+            --out {OUTPUT_ROOT} \
             --celltype GM12878_merge \
             --chr $chr --start $start \
             --model {input.model} \
@@ -145,14 +156,14 @@ rule all_pred:
         seq = bulk_seq,
         atac = bulk_atac,
     output:
-        'predict_atac_model/GM12878_all/prediction/npy/{region}.npy',
+        str(OUTPUT_ROOT / "GM12878_all/prediction/npy/{region}.npy"),
     shell: """
         set +u; source activate corigami; set -u
         export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
         chr=`echo {wildcards.region} | sed 's/_.*//g'`
         start=`echo {wildcards.region} | sed 's/.*_//g'`
         python {input.inference} \
-            --out predict_atac_model \
+            --out {OUTPUT_ROOT} \
             --celltype GM12878_all \
             --chr $chr --start $start \
             --model {input.model} \

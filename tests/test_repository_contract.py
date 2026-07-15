@@ -59,6 +59,25 @@ class RepositoryContractTest(unittest.TestCase):
         self.assertIn('${REPO_ROOT}/src/training/train_atac_only.py', atac_only)
         self.assertIn('${REPO_ROOT}/outputs/training/atac-only', atac_only)
 
+    def test_prediction_workflows_use_repository_paths(self):
+        expected_outputs = {
+            "run_top_pred.smk": "outputs/prediction/plan-a",
+            "run_top_pred_planE.smk": "outputs/prediction/plan-e",
+            "run_top_pred_planH.smk": "outputs/prediction/plan-h",
+        }
+        for name, output in expected_outputs.items():
+            text = (ROOT / "src/prediction" / name).read_text()
+            self.assertIn("Path(workflow.snakefile).resolve().parents[2]", text)
+            self.assertIn(output, text)
+            self.assertNotIn("/gpfs1/", text)
+            self.assertNotIn("/home/", text)
+
+    def test_plan_e_merge_uses_bulk_sequence_and_ctcf(self):
+        text = (ROOT / "src/prediction/run_top_pred_planE.smk").read_text()
+        merge_rule = text.split("rule merge_pred:", 1)[1]
+        self.assertIn("seq   = bulk_seq", merge_rule)
+        self.assertIn("ctcf  = bulk_ctcf", merge_rule)
+
 
 if __name__ == "__main__":
     unittest.main()
