@@ -1,0 +1,27 @@
+# Model and genomic data
+*.ckpt
+*.bw
+*.bigWig
+*.bedGraph
+*.fasta
+*.fa
+
+# Generated predictions and analysis objects
+*.npy
+*.npz
+*.RData
+*.RDataTmp
+*.qs
+
+# Notebook and local environment state
+.ipynb_checkpoints/
+.Rhistory
+.RData
+__pycache__/
+*.py[cod]
+
+# Workflow outputs and logs
+predict/
+predict_*/
+.snakemake/
+logs/
