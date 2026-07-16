@@ -139,6 +139,35 @@ class RepositoryContractTest(unittest.TestCase):
         self.assertIn("src/data/reference/GRCh38.chrom.sizes", sources)
         self.assertIn("tileGenome", sources)
 
+    def test_benchmark_documentation_is_self_contained(self):
+        readme_path = ROOT / "benchmarks/README.md"
+        image_path = ROOT / "benchmarks/images/plans_benchmark_workflow.png"
+        old_image_path = ROOT / "docs/images/plans_benchmark_workflow.png"
+
+        self.assertTrue(readme_path.is_file())
+        self.assertTrue(image_path.is_file())
+        self.assertFalse(old_image_path.exists())
+
+        text = readme_path.read_text()
+        required = (
+            "Default",
+            "All-hap.",
+            "No-CTCF",
+            "experimental benchmark-only",
+            "corigami_predict_benchmark_dip3d_planA_merge.ipynb",
+            "corigami_predict_benchmark_planAEH.ipynb",
+            "Stratified Correlation Coefficient (SCC)",
+            "Insulation correlation",
+            "Paternal-maternal SCC concordance",
+            "Matched and mismatched haplotype SCC",
+            "SCC versus merged Dip3D",
+            "SNP-density association",
+            "Plan E `all` and `merge` entries are aliases of Plan A",
+            "images/plans_benchmark_workflow.png",
+        )
+        for phrase in required:
+            self.assertIn(phrase, text)
+
 
 if __name__ == "__main__":
     unittest.main()
