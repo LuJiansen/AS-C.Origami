@@ -191,6 +191,25 @@ class RepositoryContractTest(unittest.TestCase):
         for phrase in forbidden:
             self.assertNotIn(phrase, text)
 
+    def test_supporting_docs_keep_experimental_plans_in_benchmarks(self):
+        workflow = (ROOT / "docs/workflow.md").read_text()
+        dependencies = (ROOT / "docs/dependencies.md").read_text()
+
+        for phrase in (
+            "Plan A (Default)",
+            "src/prediction/run_top_pred.smk",
+            "../benchmarks/README.md",
+            "corigami_predict_benchmark_dip3d_planA_merge.ipynb",
+        ):
+            self.assertIn(phrase, workflow)
+        self.assertNotIn("run_top_pred_planE.smk", workflow)
+        self.assertNotIn("run_top_pred_planH.smk", workflow)
+
+        self.assertIn("Benchmark-only dependencies", dependencies)
+        self.assertIn("Plan E (All-hap.)", dependencies)
+        self.assertIn("Plan H (No-CTCF)", dependencies)
+        self.assertIn("../benchmarks/README.md", dependencies)
+
 
 if __name__ == "__main__":
     unittest.main()
