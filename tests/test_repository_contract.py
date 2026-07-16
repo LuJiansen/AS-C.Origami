@@ -8,6 +8,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def read_normalized_markdown(relative):
+    return " ".join((ROOT / relative).read_text().split())
+
+
 class RepositoryContractTest(unittest.TestCase):
     ASSET_HASHES = {
         "src/models/standard/epoch=78-step=47004.ckpt": "81c1379928adfbe0ec26f236a03347bf51a3ccecf1a261ef343f04f9e2fa0c55",
@@ -209,6 +213,61 @@ class RepositoryContractTest(unittest.TestCase):
         self.assertIn("Plan E (All-hap.)", dependencies)
         self.assertIn("Plan H (No-CTCF)", dependencies)
         self.assertIn("../benchmarks/README.md", dependencies)
+
+    def test_documentation_explains_checkpoint_selection(self):
+        readme = read_normalized_markdown("README.md")
+        workflow = read_normalized_markdown("docs/workflow.md")
+
+        for text in (readme, workflow):
+            self.assertIn("outputs/training/standard/", text)
+            self.assertIn("src/models/standard/epoch=78-step=47004.ckpt", text)
+            self.assertIn("Snakefile's `model` setting", text)
+            self.assertIn("does not automatically replace", text)
+        self.assertIn("continues to use the included checkpoint", readme)
+
+    def test_benchmark_prediction_plan_table_covers_all_prediction_types(self):
+        text = read_normalized_markdown("benchmarks/README.md")
+
+        required = (
+            "paternal and maternal predictions",
+            "Bulk DNA and bulk ATAC",
+            "Bulk DNA and merged dscNanoATAC",
+            "Neither Plan H job uses CTCF",
+            "ATAC-only model",
+            "Plan A aliases",
+        )
+        for phrase in required:
+            self.assertIn(phrase, text)
+
+    def test_benchmark_documentation_matches_primary_aggregation(self):
+        text = read_normalized_markdown("benchmarks/README.md")
+
+        required = (
+            "insulation mean/median summaries cover all shared regions and the top 100 SNP-dense regions",
+            "SCC mean/median summary covers all shared regions only",
+            "do not report a valid-observation count (`n`)",
+            "Plan A/E/H summary reports observation counts",
+            "filtered SNP-density Pearson table reports `n`",
+        )
+        for phrase in required:
+            self.assertIn(phrase, text)
+        self.assertNotIn(
+            "Metric tables report the available observation count (`n`)", text
+        )
+
+    def test_primary_notebook_inputs_and_paths_are_documented(self):
+        benchmark = read_normalized_markdown("benchmarks/README.md")
+        dependencies = read_normalized_markdown("docs/dependencies.md")
+
+        required = (
+            "per-10-kb SNP-count bedGraph",
+            "Dip3D/reference-bin input",
+            "machine-specific absolute paths",
+            "configure these path constants before reproduction",
+        )
+        for text in (benchmark, dependencies):
+            for phrase in required:
+                self.assertIn(phrase, text)
 
 
 if __name__ == "__main__":

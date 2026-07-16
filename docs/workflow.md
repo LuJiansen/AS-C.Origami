@@ -30,7 +30,10 @@ inputs for those experimental comparisons remain archived; see
 DNA, CTCF, and ATAC features. It writes results to
 `outputs/training/standard/`. The selected standard checkpoint is included at
 `src/models/standard/epoch=78-step=47004.ckpt`, so retraining is optional when
-reproducing prediction with that checkpoint.
+reproducing prediction with that checkpoint. Training does not automatically
+replace the included checkpoint. Plan A continues to read the included path
+unless you place a selected checkpoint there or update the Snakefile's `model`
+setting.
 
 ## 4. Plan A prediction
 
@@ -63,7 +66,12 @@ Platinum Genomes phased VCF + chromosome lengths
                          v
               SNP-density notebook ----> ranked regions
 
-Zenodo bulk DNA + GM12878 tracks ----> standard training ----> checkpoint
+Zenodo bulk DNA + GM12878 tracks ----> standard training
+                                              |
+                                              v
+                                  outputs/training/standard/
+
+included checkpoint at src/models/standard/epoch=78-step=47004.ckpt
                                                            |
 ranked regions + bulk DNA/CTCF + GM12878 dscNanoATAC -------+
                                                            v

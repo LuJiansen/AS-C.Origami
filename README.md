@@ -15,9 +15,9 @@ Historical notebook outputs are retained for reference.
 The production path uses the uploaded phased VCF and chromosome lengths to rank
 SNP-dense windows, the public C.Origami GM12878 data for bulk DNA and genomic
 features, and the included allele-specific dscNanoATAC BigWigs. Standard
-C.Origami training produces or replaces the included standard checkpoint, and
-Plan A predicts paternal, maternal, bulk, and merged contact maps on the selected
-windows.
+C.Origami training writes a separate set of results; it does not automatically
+replace the included standard checkpoint. Plan A predicts paternal, maternal,
+bulk, and merged contact maps on the selected windows.
 
 Plan A is the only recommended user workflow. Experimental input combinations
 and their archived comparisons are documented separately in
@@ -108,6 +108,10 @@ sbatch src/training/corigami_train.sh
 ```
 
 Training results are written to `outputs/training/standard/`.
+This does not automatically replace
+`src/models/standard/epoch=78-step=47004.ckpt`: Plan A continues to use the
+included checkpoint unless you select a new checkpoint by placing it at that
+configured repository model path or updating the Snakefile's `model` setting.
 
 ## Run Plan A prediction
 

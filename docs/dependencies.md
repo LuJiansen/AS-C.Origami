@@ -37,7 +37,10 @@ retained, and the resulting ranked region table is already included.
 The Plan A benchmark notebook requires R with IRkernel, its imported R packages,
 and Python packages loaded through `reticulate`. It additionally depends on
 Plan A prediction `.npy` trees and external paternal, maternal, and merged Dip3D
-contact matrices. Historical notebook outputs are retained, but the external
+contact matrices. It also requires the per-10-kb SNP-count bedGraph used for bin
+masking and the Dip3D/reference-bin input. The retained notebook path constants
+include machine-specific absolute paths; configure these path constants before
+reproduction. Historical notebook outputs are retained, but the external
 reference data is not committed.
 
 ## Benchmark-only dependencies

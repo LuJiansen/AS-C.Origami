@@ -13,6 +13,9 @@ not stored in this repository.
 
 ![Plan A, E, and H input comparison](images/plans_benchmark_workflow.png)
 
+The following table describes the inputs for paternal and maternal predictions;
+bulk (`all`) and merged jobs are mapped separately below.
+
 | Plan | Alias | DNA | ATAC | CTCF | Model | Intended use |
 |---|---|---|---|---|---|---|
 | **Plan A** | **Default** | Bulk | Allele-specific | Bulk | Standard C.Origami | Recommended AS-C.Origami workflow |
@@ -24,6 +27,20 @@ retaining the standard C.Origami DNA, CTCF, and model inputs. Plan E tests
 haplotype-specific DNA and generated allele-specific CTCF together with the
 allele-specific ATAC signal. Plan H removes CTCF and uses the archived ATAC-only
 model with haplotype-specific DNA and ATAC.
+
+| Plan | Prediction | DNA | ATAC | CTCF | Model or source |
+|---|---|---|---|---|---|
+| Plan A | `all` | Bulk DNA | Bulk ATAC | Bulk | Standard C.Origami |
+| Plan A | `merge` | Bulk DNA | Merged dscNanoATAC | Bulk | Standard C.Origami |
+| Plan E | `all` | - | - | - | Plan A `all` alias |
+| Plan E | `merge` | - | - | - | Plan A `merge` alias |
+| Plan H | `all` | Bulk DNA | Bulk ATAC | Not used | ATAC-only model |
+| Plan H | `merge` | Bulk DNA | Merged dscNanoATAC | Not used | ATAC-only model |
+
+The Plan E `all` and `merge` notebook entries are Plan A aliases, not separately
+generated Plan E jobs. Neither Plan H job uses CTCF; both use the ATAC-only
+model. Specifically, Plan H `all` combines Bulk DNA and bulk ATAC, while Plan H
+`merge` combines Bulk DNA and merged dscNanoATAC.
 
 The prediction workflows are retained at
 `../src/prediction/run_top_pred.smk`,
@@ -45,8 +62,9 @@ with the merged Dip3D reference.
 The notebook takes the intersection of regions available in all four Plan A
 prediction directories and joins those windows to the ranked SNP-density table.
 It evaluates 10 kb matrices over 210 bins (approximately 2.1 Mb), resizing the
-native prediction output to 210 x 210 when required. Results are summarized over
-all available regions and the top 100 SNP-dense regions.
+native prediction output to 210 x 210 when required. The primary Plan A
+insulation mean/median summaries cover all shared regions and the top 100
+SNP-dense regions. Its SCC mean/median summary covers all shared regions only.
 
 ### Experimental Plan A/E/H comparison
 
@@ -82,7 +100,8 @@ Both notebooks use 10 kb resolution. The Plan A/E/H notebook calls
 notebook applies smoothing equivalent to `h = 5`, uses its caller's 0-1 Mb
 default range, masks bins with SNP counts less than or equal to 1, and retries
 invalid comparisons through its fallback calculation. Group summaries report
-the number of valid observations together with mean and median SCC.
+mean and median SCC. The primary Plan A SCC summary does not include `n`; the
+Plan A/E/H summary reports observation counts.
 
 ### Insulation correlation
 
@@ -128,18 +147,19 @@ Plan E matrices.
 The Plan A notebook relates each window's mean SNP density to its insulation
 correlation and reports summaries for all regions and the top 100 SNP-dense
 regions. Its displayed Pearson association summary further filters windows to
-mean SNP-density values between 30 and 50. This filtered result should be read
-as the notebook's selected-window analysis, not as an unfiltered genome-wide
-association.
+mean SNP-density values between 30 and 50. This filtered SNP-density Pearson
+table reports `n`. The result should be read as the notebook's selected-window
+analysis, not as an unfiltered genome-wide association.
 
 ## Aggregation and interpretation
 
-Metric tables report the available observation count (`n`) and mean/median
-values for applicable plan and prediction groups. The notebooks also retain
-scatter or density plots, boxplots, violin plots, contact-map examples, and
-locus-level spot checks. Filtering, missing inputs, invalid correlations, and
-the shared-window intersection can produce different `n` values among metrics;
-compare plans using both the reported statistic and its observation count.
+The primary Plan A SCC and insulation mean/median summary tables do not report a
+valid-observation count (`n`). Observation counts are instead reported by the
+Plan A/E/H summary. The filtered SNP-density Pearson table reports `n` where
+applicable. The notebooks also retain scatter or density plots, boxplots, violin
+plots, contact-map examples, and locus-level spot checks. Filtering, missing
+inputs, invalid correlations, and the shared-window intersection can change the
+underlying number of usable observations even where a summary omits `n`.
 
 These analyses evaluate agreement with the available Dip3D matrices on selected
 SNP-dense windows. They do not establish that the experimental Plan E or Plan H
@@ -149,8 +169,11 @@ input combinations are preferable to the recommended Plan A workflow.
 
 The notebooks expect the relevant trees under `../outputs/prediction/`, plus
 external Dip3D paternal, maternal, and merged matrices, hg38 blacklist intervals,
-and notebook-specific comparison/reference matrices. These external benchmark
-inputs and generated result tables are not committed. See
+and notebook-specific comparison/reference matrices. The primary notebook also
+requires the per-10-kb SNP-count bedGraph used for bin masking and the
+Dip3D/reference-bin input. Its retained path constants include machine-specific
+absolute paths; configure these path constants before reproduction. These
+external benchmark inputs and generated result tables are not committed. See
 [`../docs/dependencies.md`](../docs/dependencies.md) for software and data
 requirements and [`../docs/workflow.md`](../docs/workflow.md) for the recommended
 Plan A production data flow.
