@@ -1,65 +1,52 @@
 # AS-C.Origami
 
-AS-C.Origami collects the GM12878 C.Origami training, allele-specific prediction,
-SNP-density selection, input-generation, and benchmark workflows. Historical
-notebook outputs are retained for reference.
+AS-C.Origami applies paternal and maternal ATAC signals obtained from GM12878
+dscNanoATAC to [C.Origami](https://github.com/tanjimin/C.Origami), enabling
+allele-specific chromatin conformation prediction. Plan A (Default) is the
+recommended workflow: it uses bulk DNA and CTCF inputs with paternal or maternal
+dscNanoATAC and the standard C.Origami model.
 
-## Overview
+Historical notebook outputs are retained for reference.
 
-AS-C.Origami is a workflow for allele-specific chromatin conformation
-prediction. It applies paternal and maternal ATAC signals obtained with
-dscNanoATAC to [C.Origami](https://github.com/tanjimin/C.Origami), enabling the
-model to generate allele-specific chromatin contact maps.
+## Recommended workflow
 
 ![AS-C.Origami workflow](docs/images/AS-COrigami_workflow.png)
 
-## Prediction plans
+The production path uses the uploaded phased VCF and chromosome lengths to rank
+SNP-dense windows, the public C.Origami GM12878 data for bulk DNA and genomic
+features, and the included allele-specific dscNanoATAC BigWigs. Standard
+C.Origami training produces or replaces the included standard checkpoint, and
+Plan A predicts paternal, maternal, bulk, and merged contact maps on the selected
+windows.
 
-AS-C.Origami provides three prediction strategies that differ in which inputs
-are haplotype-specific. The comparison below describes the paternal and maternal
-prediction jobs; merged and bulk reference jobs continue to use bulk inputs.
-
-![Plan A, E, and H input comparison](docs/images/plans_benchmark_workflow.png)
-
-| Plan | Alias | DNA | ATAC | CTCF | Model |
-|---|---|---|---|---|---|
-| **Plan A** | **Default** | Bulk | Allele-specific | Bulk | Standard C.Origami |
-| Plan E | All-hap. | Haplotype-specific | Allele-specific | Allele-specific | Standard C.Origami |
-| Plan H | No-CTCF | Haplotype-specific | Allele-specific | Not used | ATAC-only C.Origami |
-
-- **Plan A (Default)** is the recommended starting workflow. It uses the
-  standard C.Origami model with bulk DNA and CTCF tracks while introducing
-  paternal or maternal dscNanoATAC as the allele-specific input.
-- **Plan E (All-hap.)** uses haplotype-specific DNA, dscNanoATAC, and generated
-  allele-specific CTCF tracks with the standard C.Origami model.
-- **Plan H (No-CTCF)** uses the ATAC-only model with haplotype-specific DNA and
-  dscNanoATAC, without a CTCF input.
+Plan A is the only recommended user workflow. Experimental input combinations
+and their archived comparisons are documented separately in
+[`benchmarks/README.md`](benchmarks/README.md).
 
 ## Repository layout
 
 | Path | Contents |
 |---|---|
-| `src/training/` | Standard C.Origami and ATAC-only training entry points |
-| `src/prediction/` | Plan A, Plan E, and Plan H Snakemake workflows |
-| `src/generation/` | Diploid DNA and Plan E allele-specific CTCF generators |
-| `src/models/` | Standard and ATAC-only checkpoints tracked with Git LFS |
+| `src/training/` | Standard C.Origami training entry point and archived benchmark-only training code |
+| `src/prediction/` | Recommended Plan A workflow and archived benchmark-only prediction workflows |
+| `src/generation/` | Code retained to generate experimental haplotype inputs |
+| `src/models/` | Model checkpoints tracked with Git LFS |
 | `src/data/` | Uploaded inputs plus the location for downloaded/generated inputs |
 | `snp-density/` | SNP-density notebook and retained output |
-| `benchmarks/` | Plan A and combined Plan A/E/H benchmark notebooks |
+| `benchmarks/` | Primary Plan A evaluation and archived experimental comparison |
 | `outputs/` | Generated training and prediction results; excluded from Git |
 
-See [`docs/workflow.md`](docs/workflow.md) for the data flow,
+See [`docs/workflow.md`](docs/workflow.md) for the Plan A data flow,
 [`docs/dependencies.md`](docs/dependencies.md) for runtime requirements, and
 [`docs/source-manifest.tsv`](docs/source-manifest.tsv) for original paths and
 SHA-256 provenance.
 
 ## Inputs already included
 
-The following inputs are versioned in this private repository. Large binaries are
-stored with Git LFS.
+The following Plan A inputs are versioned in this private repository. Large
+binaries are stored with Git LFS.
 
 - Standard checkpoint: `src/models/standard/epoch=78-step=47004.ckpt`
-- ATAC-only checkpoint: `src/models/atac-only/epoch=46-step=55929.ckpt`
 - GM12878 dscNanoATAC paternal, maternal, and merged BigWigs:
   `src/data/dscNanoATAC/GM12878_dscNanoATAC_{paternal,maternal,merged}.bw`
 - Illumina Platinum Genomes phased NA12878 VCF and tabix index:
@@ -77,13 +64,12 @@ kept explicitly in every filename.
 
 Before running AS-C.Origami, follow the installation and environment setup
 steps in the upstream [C.Origami repository](https://github.com/tanjimin/C.Origami)
-to configure the `corigami` environment. The prediction workflows activate an
-environment with that name, and the standard training launcher expects
-`corigami-train` on `PATH`. The ATAC-only training launcher additionally accepts
-`CORIGAMI_ENV` when its environment has a different name.
+to configure the `corigami` environment. The Plan A prediction workflow activates
+an environment with that name, and the standard training launcher expects
+`corigami-train` on `PATH`.
 
-Install the additional workflow and input-generation dependencies, including
-Snakemake, as listed in [`docs/dependencies.md`](docs/dependencies.md).
+Install Snakemake and the remaining production dependencies listed in
+[`docs/dependencies.md`](docs/dependencies.md).
 
 ## Download the C.Origami bulk data
 
@@ -104,42 +90,47 @@ test -d src/data/corigami_data/data/hg38/gm12878
 
 The extracted `src/data/corigami_data/data/` tree is excluded from Git.
 
-## Generate allele-specific inputs
+## Rank SNP-dense regions
 
-After extracting the Zenodo data, generate the diploid DNA and Plan E paternal
-and maternal CTCF BigWigs with repository-local defaults:
+The retained `snp-density/SNP_density.ipynb` uses the uploaded phased VCF and
+chromosome-length file to generate
+`src/data/regions/GM12878_2M_10k_snp_density_summary.txt`. The generated table is
+already included; rerun the notebook only when changing the variant source or
+window selection.
 
-```bash
-bash src/generation/diploid-dna/01_build_haplotype_fasta.sh
-python src/generation/plan-e-ctcf/06_continuous_pwm_ctcf.py
-```
+## Train the standard model
 
-These commands use the uploaded phased VCF. Generated diploid FASTA, SNP-only
-VCF, and Plan E CTCF BigWigs remain under `src/data/corigami_data/data/` and are
-intentionally not committed. See [`src/generation/README.md`](src/generation/README.md)
-for output paths.
-
-## Run training and prediction
-
-Training launchers write to `outputs/training/standard/` and
-`outputs/training/atac-only/`:
+The repository includes a selected standard checkpoint. To retrain standard
+C.Origami with the downloaded bulk GM12878 inputs, submit:
 
 ```bash
 sbatch src/training/corigami_train.sh
-sbatch src/training/corigami_train_atac_only.sh
 ```
+
+Training results are written to `outputs/training/standard/`.
+
+## Run Plan A prediction
 
 Select the number of ranked SNP-density regions with `TOP_N`:
 
 ```bash
 snakemake --snakefile src/prediction/run_top_pred.smk --config TOP_N=50
-snakemake --snakefile src/prediction/run_top_pred_planE.smk --config TOP_N=50
-snakemake --snakefile src/prediction/run_top_pred_planH.smk --config TOP_N=50
 ```
 
-Plans A, E, and H write to `outputs/prediction/plan-a/`,
-`outputs/prediction/plan-e/`, and `outputs/prediction/plan-h/`, respectively.
+The workflow writes paternal, maternal, bulk (`all`), and merged dscNanoATAC
+predictions to `outputs/prediction/plan-a/`. Full execution requires the
+configured C.Origami environment, GPU resources, and downloaded Zenodo inputs.
 
-Full training and prediction require the documented C.Origami conda environment,
-GPU resources, and the omitted Zenodo bulk data. The benchmark notebooks also
-require external Dip3D and reference inputs listed in `docs/dependencies.md`.
+## Evaluate Plan A
+
+[`benchmarks/corigami_predict_benchmark_dip3d_planA_merge.ipynb`](benchmarks/corigami_predict_benchmark_dip3d_planA_merge.ipynb)
+is the primary Plan A evaluation notebook. It compares paternal and maternal
+predictions with their matching Dip3D haplotypes and compares bulk (`all`) and
+merged predictions with the merged Dip3D reference. The principal measures are
+the Stratified Correlation Coefficient (SCC) and insulation correlation, with
+summaries across shared regions and SNP-dense subsets.
+
+The notebook requires external Dip3D matrices that are not committed. See
+[`benchmarks/README.md`](benchmarks/README.md) for reference mappings, exact
+metric definitions, filtering rules, interpretation caveats, and the archived
+experimental benchmark comparison.

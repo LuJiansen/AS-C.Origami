@@ -168,6 +168,29 @@ class RepositoryContractTest(unittest.TestCase):
         for phrase in required:
             self.assertIn(phrase, text)
 
+    def test_top_level_readme_documents_only_plan_a_workflow(self):
+        text = (ROOT / "README.md").read_text()
+
+        required = (
+            "Plan A (Default)",
+            "src/training/corigami_train.sh",
+            "src/prediction/run_top_pred.smk",
+            "benchmarks/corigami_predict_benchmark_dip3d_planA_merge.ipynb",
+            "benchmarks/README.md",
+            "SCC",
+            "insulation correlation",
+        )
+        forbidden = (
+            "corigami_train_atac_only.sh",
+            "run_top_pred_planE.smk",
+            "run_top_pred_planH.smk",
+            "plans_benchmark_workflow.png",
+        )
+        for phrase in required:
+            self.assertIn(phrase, text)
+        for phrase in forbidden:
+            self.assertNotIn(phrase, text)
+
 
 if __name__ == "__main__":
     unittest.main()
